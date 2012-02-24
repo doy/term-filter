@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use Term::Filter;
+
+my $term = Term::Filter->new(
+    callbacks => {
+        munge_input => sub {
+            my ($event, $got) = @_;
+            $got =~ s/\ce/E-  Elbereth\n/g;
+            $got;
+        },
+        munge_output => sub {
+            my ($event, $got) = @_;
+            $got =~ s/(Elbereth)/\e[35m$1\e[m/g;
+            $got;
+        },
+    },
+);
+
+$term->run('nethack');
