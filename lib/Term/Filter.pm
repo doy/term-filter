@@ -94,9 +94,7 @@ sub run {
     my $guard = $self->_setup(@cmd);
 
     while (1) {
-        my ($rout, $eout) = retry_select(
-            'r', undef, $self->input_handles
-        );
+        my ($rout, $eout) = retry_select($self->input_handles);
 
         $self->_callback('read_error', $eout);
 
