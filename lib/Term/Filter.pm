@@ -59,7 +59,8 @@ has input_handles => (
     init_arg => undef,
     builder  => '_build_input_handles',
     handles  => {
-        input_handles => 'elements',
+        input_handles    => 'elements',
+        add_input_handle => 'push',
     },
 );
 
