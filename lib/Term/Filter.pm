@@ -197,6 +197,9 @@ sub retry_select {
         $self->_got_winch(0);
         return $self->retry_select(@_);
     }
+    elsif ($res == -1) {
+        die "select failed: $!";
+    }
 
     return ($out, $eout);
 }
