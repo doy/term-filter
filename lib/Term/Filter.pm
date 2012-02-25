@@ -153,7 +153,7 @@ sub _setup {
     my $self = shift;
     my (@cmd) = @_;
 
-    $self->pty->spawn(@cmd) || die "Couldn't spawn @cmd: $!";
+    $self->pty->spawn(@cmd) || Carp::croak("Couldn't spawn @cmd: $!");
 
     $self->_raw_mode(1);
 
@@ -198,7 +198,7 @@ sub retry_select {
         return $self->retry_select(@_);
     }
     elsif ($res == -1) {
-        die "select failed: $!";
+        Carp::croak("select failed: $!");
     }
 
     return ($out, $eout);
