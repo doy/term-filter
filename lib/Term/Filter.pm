@@ -14,10 +14,10 @@ has callbacks => (
 
 sub _callback {
     my $self = shift;
-    my ($event) = @_;
+    my ($event, @args) = @_;
     my $callback = $self->callbacks->{$event};
     return unless $callback;
-    return $callback->(@_);
+    return $self->$callback(@args);
 }
 
 sub _has_callback {
