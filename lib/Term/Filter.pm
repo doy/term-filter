@@ -169,12 +169,12 @@ sub _setup {
         $prev_winch->();
     };
 
-    my $undo = $self->_callback('setup', @cmd);
+    $self->_callback('setup', @cmd);
 
     return Scope::Guard->new(sub {
         $SIG{WINCH} = $prev_winch;
         $self->_raw_mode(0);
-        $undo->() if $undo;
+        $self->_callback('cleanup');
     });
 }
 
