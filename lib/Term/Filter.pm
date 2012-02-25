@@ -94,29 +94,6 @@ has _raw_mode => (
     },
 );
 
-sub read_from_handle {
-    my $self = shift;
-    my ($handle, $name) = @_;
-
-    my $buf;
-    sysread $handle, $buf, 4096;
-    if (!defined $buf || length $buf == 0) {
-        Carp::croak("Error reading from $name: $!")
-            unless defined $buf;
-        return;
-    }
-
-    return $buf;
-}
-
-sub write_to_handle {
-    my $self = shift;
-    my ($handle, $buf) = @_;
-
-    # XXX should i select here? or buffer?
-    syswrite $handle, $buf;
-}
-
 sub run {
     my $self = shift;
     my @cmd = @_;
@@ -131,19 +108,27 @@ sub run {
         $self->_callback('read_error', $eout);
 
         if (vec($rout, fileno($self->input), 1)) {
-            my $got = $self->read_from_handle($self->input, "STDIN");
+            my $got = $self->_read_from_handle($self->input, "STDIN");
             last unless defined $got;
+
             $got = $self->_callback('munge_input', $got)
                 if $self->_has_callback('munge_input');
-            $self->write_to_handle($self->pty, $got);
+
+            # XXX should i select here, or buffer, to make sure this doesn't
+            # block?
+            syswrite $self->pty, $got;
         }
 
         if (vec($rout, fileno($self->pty), 1)) {
-            my $got = $self->read_from_handle($self->pty, "pty");
+            my $got = $self->_read_from_handle($self->pty, "pty");
             last unless defined $got;
+
             $got = $self->_callback('munge_output', $got)
                 if $self->_has_callback('munge_output');
-            $self->write_to_handle($self->output, $got);
+
+            # XXX should i select here, or buffer, to make sure this doesn't
+            # block?
+            syswrite $self->output, $got;
         }
 
         $self->_callback('read', $rout);
@@ -177,6 +162,21 @@ sub _setup {
         $self->_raw_mode(0);
         $self->_callback('cleanup');
     });
+}
+
+sub _read_from_handle {
+    my $self = shift;
+    my ($handle, $name) = @_;
+
+    my $buf;
+    sysread $handle, $buf, 4096;
+    if (!defined $buf || length $buf == 0) {
+        Carp::croak("Error reading from $name: $!")
+            unless defined $buf;
+        return;
+    }
+
+    return $buf;
 }
 
 __PACKAGE__->meta->make_immutable;
