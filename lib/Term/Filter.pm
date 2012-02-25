@@ -127,7 +127,7 @@ sub run {
             'r', undef, $self->input_handles
         );
 
-        $self->_callback('error', $eout);
+        $self->_callback('read_error', $eout);
 
         if (vec($rout, fileno($self->input), 1)) {
             my $got = $self->read_from_handle($self->input, "STDIN");
