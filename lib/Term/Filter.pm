@@ -68,17 +68,6 @@ sub _build_input_handles {
     [ $self->input, $self->pty ]
 }
 
-sub _build_input_select_vec {
-    my $self = shift;
-
-    my $vec = '';
-    for my $handle ($self->input_handles) {
-        vec($vec, fileno($handle), 1) = 1;
-    }
-
-    return $vec;
-}
-
 has _got_winch => (
     is       => 'rw',
     isa      => 'Bool',
@@ -133,7 +122,9 @@ sub run {
     my $guard = $self->_setup(@cmd);
 
     while (1) {
-        my ($rout, $eout) = $self->_retry_select;
+        my ($rout, $eout) = $self->retry_select(
+            'r', undef, $self->input_handles
+        );
 
         $self->_callback('error', $eout);
 
@@ -186,20 +177,39 @@ sub _setup {
     });
 }
 
-sub _retry_select {
+sub retry_select {
     my $self = shift;
+    my ($mode, $timeout, @handles) = @_;
 
-    my ($rout, $eout);
-    my ($rin, $ein) = ($self->_build_input_select_vec) x 2;
-    my $res = select($rout = $rin, undef, $eout = $ein, undef);
+    my ($out, $eout);
+    my ($in, $ein) = ($self->_build_select_vec(@handles)) x 2;
+    my $res;
+    if ($mode eq 'r') {
+        $res = select($out = $in, undef, $eout = $ein, $timeout);
+    }
+    else {
+        $res = select(undef, $out = $in, $eout = $ein, $timeout);
+    }
     my $again = $!{EAGAIN} || $!{EINTR};
 
     if (($res == -1 && $again) || $self->_got_winch) {
         $self->_got_winch(0);
-        return $self->_retry_select;
+        return $self->retry_select(@_);
     }
 
-    return ($rout, $eout);
+    return ($out, $eout);
+}
+
+sub _build_select_vec {
+    my $self = shift;
+    my @handles = @_;
+
+    my $vec = '';
+    for my $handle (@handles) {
+        vec($vec, fileno($handle), 1) = 1;
+    }
+
+    return $vec;
 }
 
 __PACKAGE__->meta->make_immutable;
