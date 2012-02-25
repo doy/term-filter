@@ -3,6 +3,7 @@ use Moose;
 
 use IO::Pty::Easy;
 use Scope::Guard;
+use Select::Retry;
 use Term::ReadKey;
 
 has callbacks => (
@@ -123,7 +124,7 @@ sub run {
     my $guard = $self->_setup(@cmd);
 
     while (1) {
-        my ($rout, $eout) = $self->retry_select(
+        my ($rout, $eout) = retry_select(
             'r', undef, $self->input_handles
         );
 
@@ -176,44 +177,6 @@ sub _setup {
         $self->_raw_mode(0);
         $self->_callback('cleanup');
     });
-}
-
-sub retry_select {
-    my $self = shift;
-    my ($mode, $timeout, @handles) = @_;
-
-    my ($out, $eout);
-    my ($in, $ein) = ($self->_build_select_vec(@handles)) x 2;
-    my $res;
-    if ($mode eq 'r') {
-        $res = select($out = $in, undef, $eout = $ein, $timeout);
-    }
-    else {
-        $res = select(undef, $out = $in, $eout = $ein, $timeout);
-    }
-    my $again = $!{EAGAIN} || $!{EINTR};
-
-    if (($res == -1 && $again) || $self->_got_winch) {
-        $self->_got_winch(0);
-        return $self->retry_select(@_);
-    }
-    elsif ($res == -1) {
-        Carp::croak("select failed: $!");
-    }
-
-    return ($out, $eout);
-}
-
-sub _build_select_vec {
-    my $self = shift;
-    my @handles = @_;
-
-    my $vec = '';
-    for my $handle (@handles) {
-        vec($vec, fileno($handle), 1) = 1;
-    }
-
-    return $vec;
 }
 
 __PACKAGE__->meta->make_immutable;
