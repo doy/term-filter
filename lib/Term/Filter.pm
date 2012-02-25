@@ -70,13 +70,6 @@ sub _build_input_handles {
     [ $self->input, $self->pty ]
 }
 
-has _got_winch => (
-    is       => 'rw',
-    isa      => 'Bool',
-    default  => 0,
-    init_arg => undef,
-);
-
 has _raw_mode => (
     is       => 'rw',
     isa      => 'Bool',
@@ -145,7 +138,6 @@ sub _setup {
 
     my $prev_winch = $SIG{WINCH};
     $SIG{WINCH} = sub {
-        $self->_got_winch(1);
         $self->pty->slave->clone_winsize_from(\*STDIN);
 
         $self->pty->kill('WINCH', 1);
