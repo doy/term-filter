@@ -147,13 +147,17 @@ sub _setup {
         $prev_winch->();
     };
 
-    $self->_callback('setup', @cmd);
-
-    return Scope::Guard->new(sub {
+    my $setup_called;
+    my $guard = Scope::Guard->new(sub {
         $SIG{WINCH} = $prev_winch;
         $self->_raw_mode(0);
-        $self->_callback('cleanup');
+        $self->_callback('cleanup') if $setup_called;
     });
+
+    $self->_callback('setup', @cmd);
+    $setup_called = 1;
+
+    return $guard;
 }
 
 sub _read_from_handle {
