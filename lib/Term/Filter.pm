@@ -77,7 +77,7 @@ sub _build_input_handles {
     [ $self->input, $self->pty ]
 }
 
-has select => (
+has _select => (
     is  => 'ro',
     isa => 'IO::Select',
     lazy => 1,
@@ -114,7 +114,7 @@ sub run {
 
     LOOP: while (1) {
         my ($r, undef, $e) = IO::Select->select(
-            $self->select, undef, $self->select,
+            $self->_select, undef, $self->_select,
         );
 
         for my $fh (@$e) {
