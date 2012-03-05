@@ -128,10 +128,10 @@ has _raw_mode => (
         my $self = shift;
         my ($val) = @_;
         if ($val) {
-            Term::ReadKey::ReadMode 5;
+            Term::ReadKey::ReadMode(5, $self->input);
         }
         else {
-            Term::ReadKey::ReadMode 0;
+            Term::ReadKey::ReadMode(0, $self->input);
         }
     },
 );
