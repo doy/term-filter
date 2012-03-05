@@ -1,5 +1,6 @@
 package Term::Filter;
 use Moose;
+# ABSTRACT: Run an interactive terminal session, filtering the input and output
 
 use IO::Pty::Easy;
 use IO::Select;
