@@ -8,10 +8,20 @@ use Moose::Util::TypeConstraints 'subtype', 'as', 'where', 'message';
 use Scope::Guard ();
 use Term::ReadKey ();
 
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=cut
+
 subtype     'Term::Filter::TtyFileHandle',
     as      'FileHandle',
     where   { -t $_ },
     message { "Term::Filter requires input and output filehandles to be attached to a terminal" };
+
+=attr callbacks
+
+=cut
 
 has callbacks => (
     is      => 'ro',
@@ -33,14 +43,9 @@ sub _has_callback {
     return exists $self->callbacks->{$event};
 }
 
-has pty => (
-    is      => 'ro',
-    isa     => 'IO::Pty::Easy',
-    lazy    => 1,
-    builder => '_build_pty',
-);
+=attr input
 
-sub _build_pty { IO::Pty::Easy->new(raw => 0) }
+=cut
 
 has input => (
     is      => 'ro',
@@ -51,6 +56,10 @@ has input => (
 
 sub _build_input { \*STDIN }
 
+=attr output
+
+=cut
+
 has output => (
     is      => 'ro',
     isa     => 'Term::Filter::TtyFileHandle',
@@ -59,6 +68,14 @@ has output => (
 );
 
 sub _build_output { \*STDOUT }
+
+=attr input_handles
+
+=cut
+
+=method add_input_handle
+
+=cut
 
 has input_handles => (
     traits   => ['Array'],
@@ -76,6 +93,19 @@ sub _build_input_handles {
     my $self = shift;
     [ $self->input, $self->pty ]
 }
+
+=attr pty
+
+=cut
+
+has pty => (
+    is      => 'ro',
+    isa     => 'IO::Pty::Easy',
+    lazy    => 1,
+    builder => '_build_pty',
+);
+
+sub _build_pty { IO::Pty::Easy->new(raw => 0) }
 
 has _select => (
     is  => 'ro',
@@ -105,6 +135,10 @@ has _raw_mode => (
         }
     },
 );
+
+=method run
+
+=cut
 
 sub run {
     my $self = shift;
@@ -204,5 +238,47 @@ sub _read_from_handle {
 __PACKAGE__->meta->make_immutable;
 no Moose;
 no Moose::Util::TypeConstraints;
+
+=head1 BUGS
+
+No known bugs.
+
+Please report any bugs through RT: email
+C<bug-term-filter at rt.cpan.org>, or browse to
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Term-Filter>.
+
+=head1 SEE ALSO
+
+L<http://termcast.org/>
+
+=head1 SUPPORT
+
+You can find this documentation for this module with the perldoc command.
+
+    perldoc Term::Filter
+
+You can also look for information at:
+
+=over 4
+
+=item * AnnoCPAN: Annotated CPAN documentation
+
+L<http://annocpan.org/dist/Term-Filter>
+
+=item * CPAN Ratings
+
+L<http://cpanratings.perl.org/d/Term-Filter>
+
+=item * RT: CPAN's request tracker
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Term-Filter>
+
+=item * Search CPAN
+
+L<http://search.cpan.org/dist/Term-Filter>
+
+=back
+
+=cut
 
 1;
