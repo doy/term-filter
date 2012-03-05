@@ -2,11 +2,11 @@ package Term::Filter;
 use Moose;
 # ABSTRACT: Run an interactive terminal session, filtering the input and output
 
-use IO::Pty::Easy;
-use IO::Select;
+use IO::Pty::Easy ();
+use IO::Select ();
 use Moose::Util::TypeConstraints 'subtype', 'as', 'where', 'message';
-use Scope::Guard;
-use Term::ReadKey;
+use Scope::Guard ();
+use Term::ReadKey ();
 
 subtype     'Term::Filter::TtyFileHandle',
     as      'FileHandle',
@@ -98,10 +98,10 @@ has _raw_mode => (
         my $self = shift;
         my ($val) = @_;
         if ($val) {
-            ReadMode 5;
+            Term::ReadKey::ReadMode 5;
         }
         else {
-            ReadMode 0;
+            Term::ReadKey::ReadMode 0;
         }
     },
 );
