@@ -2,8 +2,8 @@ package Term::Filter;
 use Moose;
 
 use IO::Pty::Easy;
+use IO::Select;
 use Scope::Guard;
-use Select::Retry;
 use Term::ReadKey;
 
 has callbacks => (
@@ -70,6 +70,18 @@ sub _build_input_handles {
     [ $self->input, $self->pty ]
 }
 
+has select => (
+    is  => 'ro',
+    isa => 'IO::Select',
+    lazy => 1,
+    builder => '_build_select',
+);
+
+sub _build_select {
+    my $self = shift;
+    return IO::Select->new($self->input_handles);
+}
+
 has _raw_mode => (
     is       => 'rw',
     isa      => 'Bool',
@@ -93,36 +105,42 @@ sub run {
 
     my $guard = $self->_setup(@cmd);
 
-    while (1) {
-        my ($rout, $eout) = retry_select($self->input_handles);
+    LOOP: while (1) {
+        my ($r, undef, $e) = IO::Select->select(
+            $self->select, undef, $self->select,
+        );
 
-        $self->_callback('read_error', $eout);
-
-        if (vec($rout, fileno($self->input), 1)) {
-            my $got = $self->_read_from_handle($self->input, "STDIN");
-            last unless defined $got;
-
-            $got = $self->_callback('munge_input', $got)
-                if $self->_has_callback('munge_input');
-
-            # XXX should i select here, or buffer, to make sure this doesn't
-            # block?
-            syswrite $self->pty, $got;
+        for my $fh (@$e) {
+            $self->_callback('read_error', $fh);
         }
 
-        if (vec($rout, fileno($self->pty), 1)) {
-            my $got = $self->_read_from_handle($self->pty, "pty");
-            last unless defined $got;
+        for my $fh (@$r) {
+            if ($fh == $self->input) {
+                my $got = $self->_read_from_handle($self->input, "STDIN");
+                last LOOP unless defined $got;
 
-            $got = $self->_callback('munge_output', $got)
-                if $self->_has_callback('munge_output');
+                $got = $self->_callback('munge_input', $got)
+                    if $self->_has_callback('munge_input');
 
-            # XXX should i select here, or buffer, to make sure this doesn't
-            # block?
-            syswrite $self->output, $got;
+                # XXX should i select here, or buffer, to make sure this
+                # doesn't block?
+                syswrite $self->pty, $got;
+            }
+            elsif ($fh == $self->pty) {
+                my $got = $self->_read_from_handle($self->pty, "pty");
+                last LOOP unless defined $got;
+
+                $got = $self->_callback('munge_output', $got)
+                    if $self->_has_callback('munge_output');
+
+                # XXX should i select here, or buffer, to make sure this
+                # doesn't block?
+                syswrite $self->output, $got;
+            }
+            else {
+                $self->_callback('read', $fh);
+            }
         }
-
-        $self->_callback('read', $rout);
     }
 }
 
