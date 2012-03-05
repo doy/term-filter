@@ -149,6 +149,9 @@ sub _setup {
     my $self = shift;
     my (@cmd) = @_;
 
+    Carp::croak("Must be run attached to a tty")
+        unless -t $self->input && -t $self->output;
+
     $self->pty->spawn(@cmd) || Carp::croak("Couldn't spawn @cmd: $!");
 
     $self->_raw_mode(1);
