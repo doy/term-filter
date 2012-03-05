@@ -4,8 +4,14 @@ use Moose;
 
 use IO::Pty::Easy;
 use IO::Select;
+use Moose::Util::TypeConstraints 'subtype', 'as', 'where', 'message';
 use Scope::Guard;
 use Term::ReadKey;
+
+subtype     'Term::Filter::TtyFileHandle',
+    as      'FileHandle',
+    where   { -t $_ },
+    message { "Term::Filter requires input and output filehandles to be attached to a terminal" };
 
 has callbacks => (
     is      => 'ro',
@@ -38,7 +44,7 @@ sub _build_pty { IO::Pty::Easy->new(raw => 0) }
 
 has input => (
     is      => 'ro',
-    isa     => 'FileHandle',
+    isa     => 'Term::Filter::TtyFileHandle',
     lazy    => 1,
     builder => '_build_input',
 );
@@ -47,7 +53,7 @@ sub _build_input { \*STDIN }
 
 has output => (
     is      => 'ro',
-    isa     => 'FileHandle',
+    isa     => 'Term::Filter::TtyFileHandle',
     lazy    => 1,
     builder => '_build_output',
 );
@@ -197,5 +203,6 @@ sub _read_from_handle {
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
+no Moose::Util::TypeConstraints;
 
 1;
