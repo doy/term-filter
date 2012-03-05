@@ -17,6 +17,10 @@ SCRIPT
 my $crlf = "\x0d\x0a";
 
 $pty->spawn($^X, '-Ilib', '-e', $script);
+
+# just in case
+alarm 60;
+
 $pty->write("foo\n");
 is($pty->read(undef, 5), "foo$crlf");
 is($pty->read(undef, 5), "foo$crlf");
