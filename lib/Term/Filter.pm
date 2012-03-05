@@ -154,7 +154,7 @@ sub _setup {
 
     my $prev_winch = $SIG{WINCH};
     $SIG{WINCH} = sub {
-        $self->pty->slave->clone_winsize_from(\*STDIN);
+        $self->pty->slave->clone_winsize_from($self->input);
 
         $self->pty->kill('WINCH', 1);
 
