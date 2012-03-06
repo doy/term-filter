@@ -10,7 +10,37 @@ use Term::ReadKey ();
 
 =head1 SYNOPSIS
 
+  package My::Term::Filter;
+  use Moose;
+  with 'Term::Filter';
+
+  sub munge_input {
+      my $self = shift;
+      my ($got) = @_;
+      $got =~ s/\ce/E-  Elbereth\n/g;
+      $got;
+  }
+
+  sub munge_output {
+      my $self = shift;
+      my ($got) = @_;
+      $got =~ s/(Elbereth)/\e[35m$1\e[m/g;
+      $got;
+  }
+
+  My::Term::Filter->new->run('nethack');
+
 =head1 DESCRIPTION
+
+This module is a L<Moose role/Moose::Role> which implements running a program
+in a pty while being able to filter the data that goes into and out of it. This
+can be used to alter the inputs and outputs of a terminal based program (as in
+the L</SYNOPSIS>), or to intercept the data going in or out to record it or
+rebroadcast it (L<App::Ttyrec> or L<App::Termcast>, for instance).
+
+This role is intended to be consumed by a class which implements its callbacks
+as methods; for a simpler callback-based API, you may want to use
+L<Term::Filter::Callback> instead.
 
 =cut
 
@@ -20,6 +50,8 @@ subtype     'Term::Filter::TtyFileHandle',
     message { "Term::Filter requires input and output filehandles to be attached to a terminal" };
 
 =attr input
+
+The input filehandle to attach to the pty's input. Defaults to STDIN.
 
 =cut
 
@@ -34,6 +66,8 @@ sub _build_input { \*STDIN }
 
 =attr output
 
+The output filehandle to attach the pty's output to. Defaults to STDOUT.
+
 =cut
 
 has output => (
@@ -45,15 +79,24 @@ has output => (
 
 sub _build_output { \*STDOUT }
 
-=attr input_handles
+=method input_handles
+
+Returns the filehandles which will be monitored for reading. This list defaults
+to C<input> and C<pty>.
 
 =cut
 
-=method add_input_handle
+=method add_input_handle($fh)
+
+Add an input handle to monitor for reading. After calling this method, the
+C<read> callback will be called with C<$fh> as an argument whenever data is
+available to be read from C<$fh>.
 
 =cut
 
-=method remove_input_handle
+=method remove_input_handle($fh)
+
+Remove C<$fh> from the list of input handles being watched for reading.
 
 =cut
 
@@ -69,6 +112,10 @@ has input_handles => (
         add_input_handle    => 'push',
         _grep_input_handles => 'grep',
     },
+    trigger  => sub {
+        my $self = shift;
+        $self->_clear_select;
+    },
 );
 
 sub _build_input_handles {
@@ -82,10 +129,11 @@ sub remove_input_handle {
     $self->_set_input_handles(
         [ $self->_grep_input_handles(sub { $_ != $fh }) ]
     );
-    $self->_clear_select;
 }
 
 =attr pty
+
+The L<IO::Pty::Easy> object that the subprocess will be run under.
 
 =cut
 
@@ -128,7 +176,11 @@ has _raw_mode => (
     },
 );
 
-=method run
+=method run(@cmd)
+
+Run the command specified by C<@cmd>, as though via C<system>. The callbacks
+that have been defined will be called at the appropriate times, to allow for
+manipulating the data that is sent or received.
 
 =cut
 
@@ -224,6 +276,60 @@ sub _read_from_handle {
 
     return $buf;
 }
+
+=head1 CALLBACKS
+
+The following methods may be defined to interact with the subprocess:
+
+=over 4
+
+=item setup
+
+Called when the process has just been started. The parameters to C<run> are
+passed to this callback.
+
+=item cleanup
+
+Called when the process terminates. Will not be called if C<setup> is never run
+(for instance, if the process fails to start).
+
+=item munge_input
+
+Called whenever there is new data coming from the C<input> handle, before it is
+passed to the pty. Must return the data to send to the pty (and the default
+implementation does this), but can do other things with the data as well.
+
+=item munge_output
+
+Called whenever the process running on the pty has produced new data, before it
+is passed to the C<output> handle. Must return the data to send to the
+C<output> handle (and the default implementation does this), but can do other
+things with the data as well.
+
+=item read
+
+Called when a filehandle other than C<input> or C<pty> has data available (so
+will never be called unless you call C<add_input_handle> to register your
+handle with the event loop). Receives the handle with data available as its
+only argument.
+
+=item read_error
+
+Called when an exception state is detected in any handle in C<input_handles>
+(including the default ones). Receives the handle with the exception state as
+its only argument.
+
+=item winch
+
+Called whenever the parent process receives a C<SIGWINCH> signal, after it
+propagates that signal to the subprocess. C<SIGWINCH> is sent to a process
+running on a terminal whenever the dimensions of that terminal change. This
+callback can be used to update any other handles watching the subprocess about
+the new terminal size.
+
+=back
+
+=cut
 
 sub setup        { }
 sub cleanup      { }

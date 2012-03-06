@@ -6,11 +6,42 @@ with 'Term::Filter';
 
 =head1 SYNOPSIS
 
+  use Term::Filter::Callback;
+
+  my $term = Term::Filter::Callback->new(
+      callbacks => {
+          munge_input => sub {
+              my $self = shift;
+              my ($got) = @_;
+              $got =~ s/\ce/E-  Elbereth\n/g;
+              $got;
+          },
+          munge_output => sub {
+              my $self = shift;
+              my ($got) = @_;
+              $got =~ s/(Elbereth)/\e[35m$1\e[m/g;
+              $got;
+          },
+      },
+  );
+
+  $term->run('nethack');
+
 =head1 DESCRIPTION
+
+This module provides a callback-based API to L<Term::Filter>. The desired
+callbacks can just be passed into the constructor of this class, rather than
+requiring a new class to be manually defined. This class consumes the
+L<Term::Filter> role, so the rest of the documentation in that module applies
+here.
 
 =cut
 
 =attr callbacks
+
+A hashref of callbacks for L<Term::Filter>. The keys are
+L<callback names|Term::Filter/CALLBACKS> and the values are coderefs to call
+for those callbacks.
 
 =cut
 
