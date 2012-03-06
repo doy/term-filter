@@ -7,6 +7,8 @@ use IO::Pty::Easy;
 use IO::Select;
 
 my $script = <<'SCRIPT';
+use strict;
+use warnings;
 use Term::Filter;
 my $term = Term::Filter->new(
     callbacks => {
