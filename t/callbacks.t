@@ -9,8 +9,8 @@ use IO::Select;
 my $script = <<'SCRIPT';
 use strict;
 use warnings;
-use Term::Filter;
-my $term = Term::Filter->new(
+use Term::Filter::Callback;
+my $term = Term::Filter::Callback->new(
     callbacks => {
         setup => sub {
             my ($t, @cmd) = @_;
@@ -63,7 +63,7 @@ alarm 60;
         $
     }sx;
 
-    is($ref, 'Term::Filter', "setup callback got a Term::Filter object");
+    is($ref, 'Term::Filter::Callback', "setup callback got a Term::Filter::Callback object");
 
     $pty->write("fOo\n");
 

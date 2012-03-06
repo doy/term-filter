@@ -20,12 +20,12 @@ POSIX::mkfifo($writep, 0700)
 my $script = <<SCRIPT;
 use strict;
 use warnings;
-use Term::Filter;
+use Term::Filter::Callback;
 open my \$readfh, '<', '$readp'
     or die "can't open pipe (child): \$!";
 open my \$writefh, '>', '$writep'
     or die "can't open pipe (child): \$!";
-my \$term = Term::Filter->new(
+my \$term = Term::Filter::Callback->new(
     callbacks => {
         setup => sub {
             my (\$t) = \@_;

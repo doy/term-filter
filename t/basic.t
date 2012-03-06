@@ -10,8 +10,8 @@ my $pty = IO::Pty::Easy->new(handle_pty_size => 0);
 my $script = <<'SCRIPT';
 use strict;
 use warnings;
-use Term::Filter;
-my $term = Term::Filter->new;
+use Term::Filter::Callback;
+my $term = Term::Filter::Callback->new;
 $term->run($^X, '-ple', q[last if /^$/]);
 print "done\n";
 SCRIPT

@@ -1,5 +1,5 @@
 package Term::Filter;
-use Moose;
+use Moose::Role;
 # ABSTRACT: Run an interactive terminal session, filtering the input and output
 
 use IO::Pty::Easy ();
@@ -18,30 +18,6 @@ subtype     'Term::Filter::TtyFileHandle',
     as      'FileHandle',
     where   { -t $_ },
     message { "Term::Filter requires input and output filehandles to be attached to a terminal" };
-
-=attr callbacks
-
-=cut
-
-has callbacks => (
-    is      => 'ro',
-    isa     => 'HashRef[CodeRef]',
-    default => sub { {} },
-);
-
-sub _callback {
-    my $self = shift;
-    my ($event, @args) = @_;
-    my $callback = $self->callbacks->{$event};
-    return unless $callback;
-    return $self->$callback(@args);
-}
-
-sub _has_callback {
-    my $self = shift;
-    my ($event) = @_;
-    return exists $self->callbacks->{$event};
-}
 
 =attr input
 
@@ -168,7 +144,7 @@ sub run {
         );
 
         for my $fh (@$e) {
-            $self->_callback('read_error', $fh);
+            $self->read_error($fh);
         }
 
         for my $fh (@$r) {
@@ -176,8 +152,7 @@ sub run {
                 my $got = $self->_read_from_handle($self->input, "STDIN");
                 last LOOP unless defined $got;
 
-                $got = $self->_callback('munge_input', $got)
-                    if $self->_has_callback('munge_input');
+                $got = $self->munge_input($got);
 
                 # XXX should i select here, or buffer, to make sure this
                 # doesn't block?
@@ -187,15 +162,14 @@ sub run {
                 my $got = $self->_read_from_handle($self->pty, "pty");
                 last LOOP unless defined $got;
 
-                $got = $self->_callback('munge_output', $got)
-                    if $self->_has_callback('munge_output');
+                $got = $self->munge_output($got);
 
                 # XXX should i select here, or buffer, to make sure this
                 # doesn't block?
                 syswrite $self->output, $got;
             }
             else {
-                $self->_callback('read', $fh);
+                $self->read($fh);
             }
         }
     }
@@ -218,7 +192,7 @@ sub _setup {
 
         $self->pty->kill('WINCH', 1);
 
-        $self->_callback('winch');
+        $self->winch;
 
         $prev_winch->();
     };
@@ -227,10 +201,10 @@ sub _setup {
     my $guard = Scope::Guard->new(sub {
         $SIG{WINCH} = $prev_winch;
         $self->_raw_mode(0);
-        $self->_callback('cleanup') if $setup_called;
+        $self->cleanup if $setup_called;
     });
 
-    $self->_callback('setup', @cmd);
+    $self->setup(@cmd);
     $setup_called = 1;
 
     return $guard;
@@ -251,8 +225,15 @@ sub _read_from_handle {
     return $buf;
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moose;
+sub setup        { }
+sub cleanup      { }
+sub munge_input  { $_[1] }
+sub munge_output { $_[1] }
+sub read         { }
+sub read_error   { }
+sub winch        { }
+
+no Moose::Role;
 no Moose::Util::TypeConstraints;
 
 =head1 BUGS
