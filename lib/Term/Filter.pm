@@ -77,21 +77,36 @@ sub _build_output { \*STDOUT }
 
 =cut
 
+=method remove_input_handle
+
+=cut
+
 has input_handles => (
     traits   => ['Array'],
     isa      => 'ArrayRef[FileHandle]',
     lazy     => 1,
     init_arg => undef,
     builder  => '_build_input_handles',
+    writer   => '_set_input_handles',
     handles  => {
-        input_handles    => 'elements',
-        add_input_handle => 'push',
+        input_handles       => 'elements',
+        add_input_handle    => 'push',
+        _grep_input_handles => 'grep',
     },
 );
 
 sub _build_input_handles {
     my $self = shift;
     [ $self->input, $self->pty ]
+}
+
+sub remove_input_handle {
+    my $self = shift;
+    my ($fh) = @_;
+    $self->_set_input_handles(
+        [ $self->_grep_input_handles(sub { $_ != $fh }) ]
+    );
+    $self->_clear_select;
 }
 
 =attr pty
@@ -108,10 +123,11 @@ has pty => (
 sub _build_pty { IO::Pty::Easy->new(raw => 0) }
 
 has _select => (
-    is  => 'ro',
-    isa => 'IO::Select',
-    lazy => 1,
+    is      => 'ro',
+    isa     => 'IO::Select',
+    lazy    => 1,
     builder => '_build_select',
+    clearer => '_clear_select',
 );
 
 sub _build_select {
