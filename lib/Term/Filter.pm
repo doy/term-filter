@@ -249,7 +249,11 @@ L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Term-Filter>.
 
 =head1 SEE ALSO
 
-L<http://termcast.org/>
+L<IO::Pty::Easy>
+
+L<App::Termcast>
+
+L<App::Ttyrec>
 
 =head1 SUPPORT
 
