@@ -2,9 +2,9 @@
 use strict;
 use warnings;
 
-use Term::Filter;
+use Term::Filter::Callback;
 
-my $term = Term::Filter->new(
+my $term = Term::Filter::Callback->new(
     callbacks => {
         munge_input => sub {
             my $self = shift;
