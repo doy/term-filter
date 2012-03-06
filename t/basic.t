@@ -18,7 +18,7 @@ SCRIPT
 
 my $crlf = "\x0d\x0a";
 
-$pty->spawn($^X, '-Ilib', '-e', $script);
+$pty->spawn($^X, (map { "-I $_" } @INC), '-e', $script);
 
 # just in case
 alarm 60;

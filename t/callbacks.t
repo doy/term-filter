@@ -49,7 +49,7 @@ alarm 60;
 
 {
     my $pty = IO::Pty::Easy->new(handle_pty_size => 0);
-    $pty->spawn($^X, '-Ilib', '-e', $script);
+    $pty->spawn($^X, (map { "-I $_" } @INC), '-e', $script);
 
     my $setup_str = full_read($pty);
 
