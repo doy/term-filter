@@ -344,10 +344,7 @@ no Moose::Util::TypeConstraints;
 
 =head1 BUGS
 
-The test suite is a bit flaky, due to it being hard to test orderings of things
-between multiple layers of read/write syscalls across multiple processes. As
-far as I can tell, the module itself works fine, but may just get some false
-negative test results on occasion. Need to fix this eventually.
+No known bugs.
 
 Please report any bugs through RT: email
 C<bug-term-filter at rt.cpan.org>, or browse to

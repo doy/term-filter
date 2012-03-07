@@ -58,7 +58,7 @@ alarm 60;
 
 {
     my $pty = IO::Pty::Easy->new(handle_pty_size => 0);
-    $pty->spawn($^X, (map { "-I $_" } @INC), '-e', $script);
+    $pty->spawn($^X, (map {; '-I', $_ } @INC), '-e', $script);
 
     my $setup_str = full_read($pty);
 
@@ -82,12 +82,19 @@ alarm 60;
             ^
             MUNGE_INPUT: \s \Q$term_str\E \s \($ref\): \s fOo\n
             \n
+            (?:
             MUNGE_OUTPUT: \s \Q$term_str\E \s \($ref\): \s FOO$crlf
             \n
             foo$crlf
             MUNGE_OUTPUT: \s \Q$term_str\E \s \($ref\): \s FOO$crlf
             \n
             foo$crlf
+            |
+            MUNGE_OUTPUT: \s \Q$term_str\E \s \($ref\): \s FOO$crlf FOO$crlf
+            \n
+            foo$crlf
+            foo$crlf
+            )
             $
         }sx,
         "munge_input and munge_output got the right arguments"

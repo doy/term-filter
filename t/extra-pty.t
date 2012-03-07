@@ -70,7 +70,7 @@ alarm 60;
 
 {
     my $pty = IO::Pty::Easy->new(handle_pty_size => 0);
-    $pty->spawn($^X, (map { "-I $_" } @INC), '-e', $script);
+    $pty->spawn($^X, (map {; '-I', $_ } @INC), '-e', $script);
 
     open my $readfh, '>', $readp
         or die "can't open pipe (parent): $!";
@@ -87,7 +87,10 @@ alarm 60;
         sysread($writefh, $buf, 21);
         is($buf, "read from term: foo$crlf");
         sysread($writefh, $buf, 21);
-        is($buf, "read from term: foo$crlf");
+        # note that this could either happen as a second write, or as part
+        # of the first write (in which case, this read finishes reading
+        # the rest of the data that was sent previously)
+        like($buf, qr/^(?:read from term: )?foo\Q$crlf\E$/);
     }
 
     syswrite($readfh, "bar");
