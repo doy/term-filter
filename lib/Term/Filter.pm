@@ -32,7 +32,7 @@ use Term::ReadKey ();
 
 =head1 DESCRIPTION
 
-This module is a L<Moose role/Moose::Role> which implements running a program
+This module is a L<Moose role|Moose::Role> which implements running a program
 in a pty while being able to filter the data that goes into and out of it. This
 can be used to alter the inputs and outputs of a terminal based program (as in
 the L</SYNOPSIS>), or to intercept the data going in or out to record it or
@@ -133,7 +133,8 @@ sub remove_input_handle {
 
 =attr pty
 
-The L<IO::Pty::Easy> object that the subprocess will be run under.
+The L<IO::Pty::Easy> object that the subprocess will be run under. Defaults to
+a newly created instance.
 
 =cut
 
