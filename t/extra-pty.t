@@ -37,10 +37,10 @@ my \$term = Term::Filter::Callback->new(
                 my \$buf;
                 sysread(\$fh, \$buf, 4096);
                 if (defined(\$buf) && length(\$buf)) {
-                    print "read from pipe: \$buf\\n";
+                    print "1read from pipe: \$buf\\n";
                 }
                 else {
-                    print "pipe error (read)!\\n";
+                    print "2pipe error (read)!\\n";
                     \$t->remove_input_handle(\$readfh);
                 }
             }
@@ -48,19 +48,19 @@ my \$term = Term::Filter::Callback->new(
         read_error => sub {
             my (\$t, \$fh) = \@_;
             if (\$fh == \$readfh) {
-                print "pipe error (exception)!\\n";
+                print "3pipe error (exception)!\\n";
                 \$t->remove_input_handle(\$readfh);
             }
         },
         munge_output => sub {
             my (\$t, \$buf) = \@_;
-            syswrite(\$writefh, "read from term: \$buf");
+            syswrite(\$writefh, "4read from term: \$buf");
             \$buf;
         },
     }
 );
 \$term->run(\$^X, '-ple', q[last if /^\$/]);
-print "done\\n";
+print "5done\\n";
 SCRIPT
 
 my $crlf = "\x0d\x0a";
@@ -79,28 +79,48 @@ alarm 60;
 
     $pty->write("foo\n");
 
-    is($pty->read(undef, 5), "foo$crlf");
-    is($pty->read(undef, 5), "foo$crlf");
+    is(full_read($pty), "foo${crlf}foo${crlf}");
 
     {
-        my $buf;
-        sysread($writefh, $buf, 21);
-        is($buf, "read from term: foo$crlf");
-        sysread($writefh, $buf, 21);
-        # note that this could either happen as a second write, or as part
-        # of the first write (in which case, this read finishes reading
-        # the rest of the data that was sent previously)
-        like($buf, qr/^(?:read from term: )?foo\Q$crlf\E$/);
+        my $got_pipe = full_read($writefh);
+        like($got_pipe, qr/4read from term: /);
+        $got_pipe =~ s/4read from term: //g;
+        is($got_pipe, "foo${crlf}foo${crlf}");
     }
 
     syswrite($readfh, "bar");
 
-    is($pty->read(undef, 21), "read from pipe: bar\n");
+    {
+        my $got_pty = full_read($pty);
+        like($got_pty, qr/1read from pipe: /);
+        $got_pty =~ s/1read from pipe: //g;
+        is($got_pty, "bar\n");
+    }
 
     close($readfh);
     close($writefh);
 
-    is($pty->read(undef, 19), "pipe error (read)!\n");
+    is(full_read($pty), "2pipe error (read)!\n");
+}
+
+sub full_read {
+    my ($fh) = @_;
+
+    my $select = IO::Select->new($fh);
+    return if $select->has_exception(0.1);
+
+    1 while !$select->can_read(1);
+
+    my $ret;
+    while ($select->can_read(1)) {
+        my $new;
+        sysread($fh, $new, 4096);
+        last unless defined($new) && length($new);
+        $ret .= $new;
+        return $ret if $select->has_exception(0.1);
+    }
+
+    return $ret;
 }
 
 done_testing;

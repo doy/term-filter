@@ -111,14 +111,17 @@ alarm 60;
 }
 
 sub full_read {
-    my ($pty) = @_;
+    my ($fh) = @_;
 
-    my $select = IO::Select->new($pty);
+    my $select = IO::Select->new($fh);
     return if $select->has_exception(0.1);
+
+    1 while !$select->can_read(1);
 
     my $ret;
     while ($select->can_read(1)) {
-        my $new = $pty->read;
+        my $new;
+        sysread($fh, $new, 4096);
         last unless defined($new) && length($new);
         $ret .= $new;
         return $ret if $select->has_exception(0.1);
