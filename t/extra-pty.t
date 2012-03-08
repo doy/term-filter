@@ -100,7 +100,8 @@ alarm 60;
     close($readfh);
     close($writefh);
 
-    is(full_read($pty), "2pipe error (read)!\n");
+    # whether this generates an exception or a failed read is system-dependent
+    like(full_read($pty), qr/pipe error/);
 }
 
 sub full_read {
