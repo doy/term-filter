@@ -1,6 +1,8 @@
 Revision history for Term-Filter
 
 {{$NEXT}}
+
+0.03  2012-03-07
       - fix a test on bsd
 
 0.02  2012-03-07
